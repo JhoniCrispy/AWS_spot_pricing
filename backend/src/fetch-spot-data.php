@@ -64,27 +64,29 @@ function awsspotpricing()
 
         // Create table if it doesn't exist
         $createTableSQL = "
-    CREATE TABLE IF NOT EXISTS spot_prices (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        region VARCHAR(50) NOT NULL,
-        instance_type VARCHAR(50) NOT NULL,
-        product_description VARCHAR(100) DEFAULT NULL,
-        spot_price VARCHAR(10) NOT NULL,
-        availability_zone VARCHAR(50) DEFAULT NULL,
-        timestamp DATETIME NOT NULL
-    );
-";
+            DROP TABLE IF EXISTS spot_prices;
+            
+            CREATE TABLE IF NOT EXISTS spot_prices (
+                id INT AUTO_INCREMENT PRIMARY KEY NOT NULL,
+                region VARCHAR(50) NOT NULL,
+                instance_type VARCHAR(50) NOT NULL,
+                product_description VARCHAR(100) DEFAULT NULL,
+                spot_price DECIMAL(10,2) NOT NULL,
+                availability_zone VARCHAR(50) DEFAULT NULL,
+                timestamp DATETIME NOT NULL
+            );
+        ";
         $pdo->exec($createTableSQL);
 
 
         // Prepare insert statement once
         $insertSQL = "
-        INSERT INTO spot_prices (
+        INSERT INTO spot_prices(
             region, instance_type, product_description, spot_price, availability_zone, timestamp
         ) VALUES (?, ?, ?, ?, ?, ?)
     ";
         $stmt = $pdo->prepare($insertSQL);
-
+        echo "Query: " . $insertSQL . PHP_EOL;
         // 8. Fetch Spot Price History for each region, page by page
         $totalRecords = 0;
 
@@ -129,7 +131,7 @@ function awsspotpricing()
                                 'region' => $regionName,
                                 'instance_type' => $spotPrice['InstanceType'] ?? null,
                                 'product_description' => $spotPrice['ProductDescription'] ?? null,
-                                'spot_price' => $spotPrice['SpotPrice'] ?? null,
+                                'spot_price' => (float) $spotPrice['SpotPrice'], // Convert to float
                                 'availability_zone' => $spotPrice['AvailabilityZone'] ?? null,
                                 'timestamp' => $spotPrice['Timestamp']->format('Y-m-d H:i:s'),
                             ];

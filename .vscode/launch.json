@@ -6,10 +6,11 @@
         "type": "php",
         "request": "launch",
         "port": 9003,
-        "log": true,
         "pathMappings": {
           "C:\\Users\\----\\Projects\\AWS_pricing": "${workspaceFolder}"
-        }
+        },
+        "log": true,
+        
       }
     ]
   }
