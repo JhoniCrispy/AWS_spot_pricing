@@ -1,4 +1,6 @@
 backend/src/temp_files
 backend/vendor
+backend/composer.lock
+
 frontend/node_modules
 *.env
