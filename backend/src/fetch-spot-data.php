@@ -2,182 +2,186 @@
 
 require __DIR__ . '/../vendor/autoload.php';
 require __DIR__ . '/database.php';
-echo "Path to database.php: " . __DIR__ . '/database.php' . PHP_EOL;
-echo "Path to autoload.php: " . __DIR__ . '/../vendor/autoload.php' . PHP_EOL;
+
+
 
 use Aws\Ec2\Ec2Client;
 use Aws\Exception\AwsException;
+use Dotenv\Dotenv;
+use Aws\Credentials\CredentialProvider;
 
 
-function fetchAWSPricing()
-{
-    try {
-
-        $config = require __DIR__ . '/config.php';
-        $pdo = getPDOConnection($config['db']);
-
-        // List of regions you want to fetch
-        $regions = [
-            'us-east-1',
-            'us-east-2',
-            'us-west-1',
-            'us-west-2',
-            // add more if needed
-        ];
-
-        foreach ($regions as $region) {
-            $ec2 = new Ec2Client([
-                'region' => $region,
-                'version' => $config['aws']['version'],
-                // Include credentials if not using instance roles or environment variables
-                // 'credentials' => [ ... ],
-            ]);
-
-            // Pagination / multiple calls might be required for large data
-            $result = $ec2->describeSpotPriceHistory([
-                'StartTime' => new \DateTime('-1 day'),
-                'EndTime' => new \DateTime('now'),
-                // 'InstanceTypes' => ['m5.large','t3.micro'], // optionally limit
-                // 'MaxResults' => 1000,
-                // 'ProductDescriptions' => ['Linux/UNIX'], // optionally limit
-            ]);
-
-            $priceHistory = $result->get('SpotPriceHistory') ?? [];
-
-            // Prepare insert statement
-            $stmt = $pdo->prepare("
-                INSERT INTO spot_prices (region, instance_type, product_description, spot_price, timestamp)
-                VALUES (:region, :instance_type, :product_description, :spot_price, :timestamp)
-            ");
-
-            foreach ($priceHistory as $record) {
-                // Insert data
-                $stmt->execute([
-                    ':region' => $region,
-                    ':instance_type' => $record['InstanceType'],
-                    ':product_description' => $record['ProductDescription'],
-                    ':spot_price' => $record['SpotPrice'],
-                    ':timestamp' => date('Y-m-d H:i:s', strtotime($record['Timestamp']))
-                ]);
-            }
-
-            echo "Fetched and inserted for region: {$region}\n";
-        }
-
-    } catch (Exception $e) {
-        echo "" . $e->getMessage() . PHP_EOL;
-    }
-}
-
-function getAWSPricingNoCredantials()
-{
-    function getAwsPricing($serviceCode, $region = 'us-east-1')
-    {
-        $url = sprintf(
-            'https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/%s/current/%s-pricing.json',
-            $serviceCode,
-            $region
-        );
-
-        $ch = curl_init($url);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-        // Disable SSL verification
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
-        $response = curl_exec($ch);
-
-        if (curl_errno($ch)) {
-            throw new Exception('Curl error: ' . curl_error($ch));
-        }
-
-        curl_close($ch);
-
-        return json_decode($response, true);
-    }
-
-    // Example usage for EC2 pricing
-    try {
-        $ec2Pricing = getAwsPricing('AmazonEC2');
-        print_r($ec2Pricing);
-    } catch (Exception $e) {
-        echo 'Error: ' . $e->getMessage();
-    }
-}
-
-
-
-function fetchAwsPricingData()
-{
-    $apiUrl = "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonEC2/current/us-east-1/index.json";
-    // Open a file for writing
-    $filePath = __DIR__ . '/aws_pricing_data.json';
-    $fileHandle = fopen($filePath, 'w');
-
-    if (!$fileHandle) {
-        die("Failed to open file for writing.");
-    }
-    // Initialize cURL session
-    $ch = curl_init($apiUrl);
-
-    // Set cURL options
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_HTTPHEADER, [
-        'Content-Type: application/json'
-    ]);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
-
-    // Stream response directly to the file
-    curl_setopt($ch, CURLOPT_FILE, $fileHandle);
-
-    $response = curl_exec($ch);
-    if (curl_errno($ch)) {
-        echo 'Curl error: ' . curl_error($ch);
-    }
-
-    curl_close($ch);
-    fclose($fileHandle);
-
-}
 
 function awsspotpricing()
 {
 
-    // AWS Spot Pricing data URL
-    $apiUrl = "https://spot-price.s3.amazonaws.com/spot.js";
+    try {
+        $config = require __DIR__ . '/config.php';
+        // 1. Load environment variables from .env
+        $dotenv = Dotenv::createImmutable(__DIR__);
+        $dotenv->load();
+        $awsCredentialsPath = $_ENV['AWS_CREDENTIALS_PATH'];
+        $awsProfile = $_ENV['AWS_PROFILE'];
+        $default_region = $_ENV['AWS_DEFAULT_REGION'];
 
-    // Define the local file path to save data
-    $filePath = __DIR__ . '/aws_spot_pricing.json';
+        // Specify the 'yoni' profile
+        $provider = CredentialProvider::ini($awsProfile, $awsCredentialsPath);
 
-    echo "Fetching AWS EC2 spot pricing data...\n";
+        // 4. Create an EC2 client (in the default region) to list all regions
+        $ec2 = new Ec2Client([
+            'version' => 'latest',
+            'region' => $default_region,
+            'credentials' => $provider,
+            // *** Disables SSL verification (NOT recommended in production) ***
+            'http' => ['verify' => false],
+        ]);
 
-    // Use cURL to fetch and save the data
-    $ch = curl_init($apiUrl);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-    curl_setopt($ch, CURLOPT_TIMEOUT, 300);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+        // 5. Describe all available regions
+        $regionsResult = $ec2->describeRegions();
+        $regions = $regionsResult['Regions'] ?? [];
 
-    // Fetch the data
-    $response = curl_exec($ch);
+        // 6. Open CSV file for writing
+        $csvFileName = sprintf('/temp_files/spot_prices_%s.csv', date('Ymd_His'));
+        $csvFilePath = __DIR__ . DIRECTORY_SEPARATOR . $csvFileName;
+        $fp = fopen($csvFilePath, 'w');
+        if (!$fp) {
+            throw new Exception("Failed to create CSV file at: {$csvFilePath}");
+        }
 
-    if (curl_errno($ch)) {
-        echo "Error downloading data: " . curl_error($ch) . "\n";
-        curl_close($ch);
-        exit;
+        // Write CSV header
+        fputcsv($fp, [
+            'region',
+            'instance_type',
+            'product_description',
+            'spot_price',
+            'availability_zone',
+            'timestamp'
+        ]);
+
+        // 7. Prepare DB connection
+        $pdo = getPDOConnection($config['db']);
+
+
+        // Create table if it doesn't exist
+        $createTableSQL = "
+    CREATE TABLE IF NOT EXISTS spot_prices (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        region VARCHAR(50) NOT NULL,
+        instance_type VARCHAR(50) NOT NULL,
+        product_description VARCHAR(100) DEFAULT NULL,
+        spot_price VARCHAR(10) NOT NULL,
+        availability_zone VARCHAR(50) DEFAULT NULL,
+        timestamp DATETIME NOT NULL
+    );
+";
+        $pdo->exec($createTableSQL);
+
+
+        // Prepare insert statement once
+        $insertSQL = "
+        INSERT INTO spot_prices (
+            region, instance_type, product_description, spot_price, availability_zone, timestamp
+        ) VALUES (?, ?, ?, ?, ?, ?)
+    ";
+        $stmt = $pdo->prepare($insertSQL);
+
+        // 8. Fetch Spot Price History for each region, page by page
+        $totalRecords = 0;
+
+        foreach ($regions as $regionObj) {
+            $regionName = $regionObj['RegionName'] ?? null;
+            if (!$regionName) {
+                continue;
+            }
+
+            echo "Fetching spot prices for region: {$regionName}\n";
+
+            // Create region-specific EC2 client
+            $ec2Client = new Ec2Client([
+                'version' => 'latest',
+                'region' => $regionName,
+                'credentials' => $provider,
+                'http' => ['verify' => false],
+            ]);
+
+            // Manual pagination
+            $nextToken = null;
+
+            do {
+                try {
+                    $response = $ec2Client->describeSpotPriceHistory([
+                        'StartTime' => new \DateTime(datetime: '-1 day'),
+                        'EndTime' => new \DateTime('now'),
+                        'MaxResults' => 1000,
+                        'NextToken' => $nextToken,
+                    ]);
+
+                    $spotPriceHistory = $response['SpotPriceHistory'] ?? [];
+                    if (count($spotPriceHistory) === 0) {
+                        // No more data, break out
+                        $nextToken = null;
+                    } else {
+                        // Insert in smaller batches to reduce memory usage
+                        $pdo->beginTransaction();
+
+                        foreach ($spotPriceHistory as $spotPrice) {
+                            $record = [
+                                'region' => $regionName,
+                                'instance_type' => $spotPrice['InstanceType'] ?? null,
+                                'product_description' => $spotPrice['ProductDescription'] ?? null,
+                                'spot_price' => $spotPrice['SpotPrice'] ?? null,
+                                'availability_zone' => $spotPrice['AvailabilityZone'] ?? null,
+                                'timestamp' => $spotPrice['Timestamp']->format('Y-m-d H:i:s'),
+                            ];
+
+                            // Insert into DB
+                            $stmt->execute([
+                                $record['region'],
+                                $record['instance_type'],
+                                $record['product_description'],
+                                $record['spot_price'],
+                                $record['availability_zone'],
+                                $record['timestamp']
+                            ]);
+
+                            // Write to CSV
+                            fputcsv($fp, [
+                                $record['region'],
+                                $record['instance_type'],
+                                $record['product_description'],
+                                $record['spot_price'],
+                                $record['availability_zone'],
+                                $record['timestamp']
+                            ]);
+
+                            $totalRecords++;
+                        }
+
+                        $pdo->commit();
+
+                        // Set nextToken for next page
+                        $nextToken = $response['NextToken'] ?? null;
+                    }
+                } catch (AwsException $e) {
+                    echo "AWS Error fetching spot prices for region {$regionName}: " . $e->getMessage() . "\n";
+                    break;
+                }
+            } while ($nextToken);
+        }
+
+        // 9. Close the CSV file
+        fclose($fp);
+
+        echo "\n=== Spot Price Data Fetched Successfully ===\n";
+        echo "Total records inserted: {$totalRecords}\n";
+        echo "CSV file created: {$csvFileName}\n";
+        echo "Data saved to database table 'spot_prices'.\n";
+
+    } catch (AwsException $e) {
+        echo "AWS Error: " . $e->getMessage() . "\n";
+    } catch (\Exception $e) {
+        echo "General Error: " . $e->getMessage() . "\n";
     }
-
-    curl_close($ch);
-
-    // The response from the API is in JSONP format, need to clean it up
-    $cleanedJson = preg_replace('/^callback\((.*)\);$/', '$1', $response);
-
-    // Save cleaned JSON data to file
-    file_put_contents($filePath, $cleanedJson);
-
-    echo "AWS Spot pricing data saved to: $filePath\n";
 }
 
 awsspotpricing();

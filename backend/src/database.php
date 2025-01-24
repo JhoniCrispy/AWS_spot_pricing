@@ -18,6 +18,7 @@ function getPDOConnection($config) {
             $pdo->exec("CREATE DATABASE `$dbName` CHARACTER SET {$config['charset']} COLLATE {$config['collation']}");
             echo "Database '$dbName' created successfully.\n";
         }
+        
 
         // Now connect to the newly created or existing database
         $dsn = "mysql:host={$config['host']};port={$config['port']};dbname={$config['database']};charset={$config['charset']}";

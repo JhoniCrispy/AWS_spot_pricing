@@ -8,7 +8,7 @@ return [
         'driver' => 'mysql', // or 'pgsql'
         'host' => 'localhost',
         'port'      => 3306,   
-        'database' => 'aws_spot',
+        'database' => 'spot_prices',
         'username' => 'root',
         'password' => 'mysqlpw',
         'charset' => 'utf8mb4',
