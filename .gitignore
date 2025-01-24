@@ -1,4 +1,4 @@
-src/temp_files
+backend/src/temp_files
 backend/vendor
 frontend/node_modules
 *.env
