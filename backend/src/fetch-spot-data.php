@@ -40,44 +40,11 @@ function awsspotpricing()
         $regionsResult = $ec2->describeRegions();
         $regions = $regionsResult['Regions'] ?? [];
 
-        // 6. Open CSV file for writing
-        // $csvFileName = sprintf('/temp_files/spot_prices_%s.csv', date('Ymd_His'));
-        // $csvFilePath = __DIR__ . DIRECTORY_SEPARATOR . $csvFileName;
-        // $fp = fopen($csvFilePath, 'w');
-        // if (!$fp) {
-        //     throw new Exception("Failed to create CSV file at: {$csvFilePath}");
-        // }
-
-        // // Write CSV header
-        // fputcsv($fp, [
-        //     'region',
-        //     'instance_type',
-        //     'product_description',
-        //     'spot_price',
-        //     'availability_zone',
-        //     'timestamp'
-        // ]);
-
         // 7. Prepare DB connection
         $pdo = getPDOConnection($config['db']);
 
 
-        // // Create table if it doesn't exist
-        // $createTableSQL = "
-        //     DROP TABLE IF EXISTS spot_prices;
 
-        //     CREATE TABLE spot_prices (
-        //         id INT AUTO_INCREMENT PRIMARY KEY,
-        //         region VARCHAR(50) NOT NULL,
-        //         instance_type VARCHAR(50) NOT NULL,
-        //         product_description VARCHAR(100),
-        //         spot_price DECIMAL(10,4) NOT NULL,
-        //         availability_zone VARCHAR(50),
-        //         timestamp DATETIME NOT NULL,
-        //         INDEX idx_unique_combination (region, instance_type, product_description, timestamp DESC)
-        //     );
-        // ";
-        // $pdo->exec($createTableSQL);
 
         $startTime = microtime(true);
 
@@ -150,15 +117,7 @@ function awsspotpricing()
 
                                 $batch = [];
                             }
-                            // // Write to CSV
-                            // fputcsv($fp, [
-                            //     $record['region'],
-                            //     $record['instance_type'],
-                            //     $record['product_description'],
-                            //     $record['spot_price'],
-                            //     $record['availability_zone'],
-                            //     $record['timestamp']
-                            // ]);
+
 
                             $totalRecords++;
                         }
@@ -357,9 +316,7 @@ function createStealSpotPricingTable()
                 $regions = $stmt->fetchAll(PDO::FETCH_COLUMN);
 
                 foreach ($regions as $region) {
-                    // ----------------------------------------------------------
-                    // 2. Select the top 5 cheapest spot prices for the given region.
-                    // ----------------------------------------------------------
+
                     $sqlTop5Region = "
                         SELECT 
                             id,
@@ -374,15 +331,7 @@ function createStealSpotPricingTable()
                         ORDER BY spot_price ASC
                         LIMIT 5
                     ";
-                    /*
-                     Explanation:
-                     - **SELECT ... FROM spot_prices WHERE region = :region**:
-                       Retrieves all spot prices for the specified region.
-                     - **ORDER BY spot_price ASC**:
-                       Sorts the records in ascending order of spot_price (cheapest first).
-                     - **LIMIT 5**:
-                       Limits the result to the top 5 cheapest records.
-                    */
+
                     $stmtTop5 = $pdo->prepare($sqlTop5Region);
                     $stmtTop5->execute([':region' => $region]);
 
@@ -393,9 +342,7 @@ function createStealSpotPricingTable()
                         $currentPrice = $record['spot_price'];
                         $currentTimestamp = $record['timestamp'];
 
-                        // --------------------------------------------------
-                        // Insert into steal_spot_pricing with steal_type = 'low_in_region'
-                        // --------------------------------------------------
+
                         $sqlInsertSteal = "
                             INSERT INTO steal_spot_pricing (
                                 spot_price_id,
@@ -422,15 +369,7 @@ function createStealSpotPricingTable()
                                   AND steal_type = 'low_in_region'
                             )
                         ";
-                        /*
-                         Explanation:
-                         - **INSERT INTO steal_spot_pricing (...) SELECT ... FROM DUAL**:
-                           Inserts a new record for each of the top 5 cheapest instances.
-                         - **'low_in_region'**:
-                           Specifies the steal type.
-                         - **WHERE NOT EXISTS (...)**:
-                           Ensures no duplicate steal records are inserted for the same spot_price_id and steal_type.
-                        */
+
                         $stmtSteal = $pdo->prepare($sqlInsertSteal);
                         $stmtSteal->execute([
                             ':spot_price_id' => $spotPriceId,
@@ -458,9 +397,6 @@ function createStealSpotPricingTable()
                 $productDescs = $stmt->fetchAll(PDO::FETCH_COLUMN);
 
                 foreach ($productDescs as $productDesc) {
-                    // ----------------------------------------------------------
-                    // 2. Select the top 5 cheapest spot prices for the given product description.
-                    // ----------------------------------------------------------
                     $sqlTop5Product = "
                         SELECT 
                             id,
@@ -475,15 +411,7 @@ function createStealSpotPricingTable()
                         ORDER BY spot_price ASC
                         LIMIT 5
                     ";
-                    /*
-                     Explanation:
-                     - **SELECT ... FROM spot_prices WHERE product_description = :product_description**:
-                       Retrieves all spot prices for the specified product description.
-                     - **ORDER BY spot_price ASC**:
-                       Sorts the records in ascending order of spot_price (cheapest first).
-                     - **LIMIT 5**:
-                       Limits the result to the top 5 cheapest records.
-                    */
+
                     $stmtTop5 = $pdo->prepare($sqlTop5Product);
                     $stmtTop5->execute([':product_description' => $productDesc]);
 
@@ -494,9 +422,6 @@ function createStealSpotPricingTable()
                         $currentPrice = $record['spot_price'];
                         $currentTimestamp = $record['timestamp'];
 
-                        // --------------------------------------------------
-                        // Insert into steal_spot_pricing with steal_type = 'low_in_instance_type'
-                        // --------------------------------------------------
                         $sqlInsertSteal = "
                             INSERT INTO steal_spot_pricing (
                                 spot_price_id,
@@ -523,15 +448,7 @@ function createStealSpotPricingTable()
                                   AND steal_type = 'low_in_instance_type'
                             )
                         ";
-                        /*
-                         Explanation:
-                         - **INSERT INTO steal_spot_pricing (...) SELECT ... FROM DUAL**:
-                           Inserts a new record for each of the top 5 cheapest instances.
-                         - **'low_in_instance_type'**:
-                           Specifies the steal type.
-                         - **WHERE NOT EXISTS (...)**:
-                           Ensures no duplicate steal records are inserted for the same spot_price_id and steal_type.
-                        */
+
                         $stmtSteal = $pdo->prepare($sqlInsertSteal);
                         $stmtSteal->execute([
                             ':spot_price_id' => $spotPriceId,
