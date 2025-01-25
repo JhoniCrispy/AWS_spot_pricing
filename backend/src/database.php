@@ -52,7 +52,7 @@ function getPriceRange($pdo)
     $stmt = $pdo->query($query);
     return $stmt->fetch(PDO::FETCH_ASSOC);
 }
-function getSpotPrices($pdo, $params, $limit, $offset, $sortColumn, $sortOrder)
+function getSpotPrices($pdo, $params, $sortColumn, $sortOrder)
 {
     $allowedSortColumns = ['region', 'instance_type', 'product_description', 'spot_price', 'timestamp'];
     $allowedSortOrder = ['ASC', 'DESC'];
@@ -73,7 +73,7 @@ function getSpotPrices($pdo, $params, $limit, $offset, $sortColumn, $sortOrder)
 
     $filterConditions[] = "spot_price BETWEEN :min_price AND :max_price";
 
-    // Updated query to use the preprocessed table
+    // Updated query without pagination
     $query = "
         SELECT region, instance_type, product_description, spot_price, timestamp 
         FROM latest_spot_prices
@@ -83,7 +83,7 @@ function getSpotPrices($pdo, $params, $limit, $offset, $sortColumn, $sortOrder)
         $query .= " WHERE " . implode(' AND ', $filterConditions);
     }
 
-    $query .= " ORDER BY $sortColumn $sortOrder LIMIT :limit OFFSET :offset";
+    $query .= " ORDER BY $sortColumn $sortOrder";
 
     $stmt = $pdo->prepare($query);
 
@@ -98,8 +98,6 @@ function getSpotPrices($pdo, $params, $limit, $offset, $sortColumn, $sortOrder)
 
     $stmt->bindValue(':min_price', $params['min_price'], PDO::PARAM_STR);
     $stmt->bindValue(':max_price', $params['max_price'], PDO::PARAM_STR);
-    $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
-    $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
 
     $stmt->execute();
     return $stmt->fetchAll(PDO::FETCH_ASSOC);

@@ -27,8 +27,6 @@
           <option v-for="type in metaData.steal_types" :key="type" :value="type">{{ type }}</option>
         </select>
       </label>
-
-      <button @click="fetchSteals">Filter</button>
     </div>
 
     <!-- Steals Table -->
@@ -88,26 +86,35 @@ export default {
       pageSize: 10
     }
   },
+  watch: {
+    // Watch for changes in filter selections and fetch data automatically
+    filters: {
+      deep: true,
+      handler() {
+        this.fetchSteals();
+      }
+    }
+  },
   async mounted() {
-    await this.fetchMetaData()
-    await this.fetchSteals()
+    await this.fetchMetaData();
+    await this.fetchSteals();
   },
   computed: {
     totalPages() {
-      return Math.ceil(this.steals.length / this.pageSize)
+      return Math.ceil(this.steals.length / this.pageSize);
     },
     paginatedSteals() {
-      const start = (this.currentPage - 1) * this.pageSize
-      return this.steals.slice(start, start + this.pageSize)
+      const start = (this.currentPage - 1) * this.pageSize;
+      return this.steals.slice(start, start + this.pageSize);
     }
   },
   methods: {
     async fetchMetaData() {
       try {
-        const res = await axios.get('http://localhost:8080/api/steals/meta')
-        this.metaData = res.data
+        const res = await axios.get('http://localhost:8080/api/steals/meta');
+        this.metaData = res.data;
       } catch (error) {
-        console.error('Error fetching metadata:', error)
+        console.error('Error fetching metadata:', error);
       }
     },
     async fetchSteals() {
@@ -116,23 +123,23 @@ export default {
           region: this.filters.region || undefined,
           product_description: this.filters.product_description || undefined,
           steal_type: this.filters.steal_type || undefined
-        }
+        };
 
-        const res = await axios.get('http://localhost:8080/api/steals', { params })
-        this.steals = res.data
-        this.currentPage = 1
+        const res = await axios.get('http://localhost:8080/api/steals', { params });
+        this.steals = res.data;
+        this.currentPage = 1;
       } catch (error) {
-        console.error('Error fetching steals:', error)
+        console.error('Error fetching steals:', error);
       }
     },
     nextPage() {
       if (this.currentPage < this.totalPages) {
-        this.currentPage++
+        this.currentPage++;
       }
     },
     prevPage() {
       if (this.currentPage > 1) {
-        this.currentPage--
+        this.currentPage--;
       }
     }
   }

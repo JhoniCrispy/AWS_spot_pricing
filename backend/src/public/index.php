@@ -31,39 +31,27 @@ try {
     }
 
     if ($method === 'GET' && preg_match('/\/api\/spot-prices/', $requestUri)) {
-        $page = isset($_GET['page']) ? (int) $_GET['page'] : 1;
-        $limit = isset($_GET['limit']) ? (int) $_GET['limit'] : 100;
-        $offset = ($page - 1) * $limit;
-
         $sortColumn = isset($_GET['sortBy']) ? $_GET['sortBy'] : 'timestamp';
         $sortOrder = isset($_GET['sortOrder']) ? $_GET['sortOrder'] : 'DESC';
-
+    
         $params = [
-            'min_price' => isset($_GET['min_price']) ? $_GET['min_price'] : 0,  // Default to 0
-            'max_price' => isset($_GET['max_price']) ? $_GET['max_price'] : PHP_INT_MAX  // Default to a high value
+            'min_price' => isset($_GET['min_price']) ? $_GET['min_price'] : 0, 
+            'max_price' => isset($_GET['max_price']) ? $_GET['max_price'] : PHP_INT_MAX
         ];
         if (isset($_GET['region'])) {
             $params['region'] = $_GET['region'];
         }
-
         if (isset($_GET['product_description'])) {
             $params['product_description'] = $_GET['product_description'];
         }
-
+    
         try {
-            $rows = getSpotPrices($pdo, $params, $limit, $offset, $sortColumn, $sortOrder);
-            $totalCount = getTotalSpotPricesCount($pdo, $params);
-
+            $rows = getSpotPrices($pdo, $params, null, null, $sortColumn, $sortOrder);
+            
             $response = [
-                'data' => $rows,
-                'pagination' => [
-                    'total' => $totalCount,
-                    'page' => $page,
-                    'limit' => $limit,
-                    'total_pages' => ceil($totalCount / $limit)
-                ]
+                'data' => $rows
             ];
-
+    
             echo json_encode($response);
             exit;
         } catch (PDOException $e) {
@@ -72,6 +60,7 @@ try {
             exit;
         }
     }
+
     if ($method === 'GET' && preg_match('/\/api\/steals\/meta/', $requestUri)) {
         try {
             $metaData = getStealsMetaData($pdo);
