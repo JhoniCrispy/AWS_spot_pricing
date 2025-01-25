@@ -3,7 +3,7 @@
     <h2>Steals</h2>
 
     <!-- Filters -->
-    <div class="filters">
+    <div class="minimal-filters">
       <label>
         Region:
         <select v-model="filters.region">
@@ -30,47 +30,47 @@
     </div>
 
     <!-- Steals Table -->
-    <table>
+    <table class="minimal-table">
       <thead>
-        <tr>
-          <th @click="toggleSort('region')">
-            Region 
-            <span v-if="sortField === 'region'">
-              {{ sortOrder === 'ASC' ? '▲' : '▼' }}
-            </span>
-          </th>
-          <th @click="toggleSort('instance_type')">
-            Instance Type
-            <span v-if="sortField === 'instance_type'">
-              {{ sortOrder === 'ASC' ? '▲' : '▼' }}
-            </span>
-          </th>
-          <th @click="toggleSort('product_description')">
-            Product Description
-            <span v-if="sortField === 'product_description'">
-              {{ sortOrder === 'ASC' ? '▲' : '▼' }}
-            </span>
-          </th>
-          <th @click="toggleSort('spot_price')">
-            Spot Price
-            <span v-if="sortField === 'spot_price'">
-              {{ sortOrder === 'ASC' ? '▲' : '▼' }}
-            </span>
-          </th>
-          <th @click="toggleSort('steal_type')">
-            Steal Type
-            <span v-if="sortField === 'steal_type'">
-              {{ sortOrder === 'ASC' ? '▲' : '▼' }}
-            </span>
-          </th>
-          <th @click="toggleSort('timestamp')">
-            Timestamp
-            <span v-if="sortField === 'timestamp'">
-              {{ sortOrder === 'ASC' ? '▲' : '▼' }}
-            </span>
-          </th>
-        </tr>
-      </thead>
+  <tr>
+    <th @click="toggleSort('region')" :class="{ sorted: sortField === 'region' }">
+      Region 
+      <span v-if="sortField === 'region'">
+        {{ sortOrder === 'ASC' ? '▲' : '▼' }}
+      </span>
+    </th>
+    <th @click="toggleSort('instance_type')" :class="{ sorted: sortField === 'instance_type' }">
+      Instance Type
+      <span v-if="sortField === 'instance_type'">
+        {{ sortOrder === 'ASC' ? '▲' : '▼' }}
+      </span>
+    </th>
+    <th @click="toggleSort('product_description')" :class="{ sorted: sortField === 'product_description' }">
+      Product Description
+      <span v-if="sortField === 'product_description'">
+        {{ sortOrder === 'ASC' ? '▲' : '▼' }}
+      </span>
+    </th>
+    <th @click="toggleSort('spot_price')" :class="{ sorted: sortField === 'spot_price' }">
+      Spot Price
+      <span v-if="sortField === 'spot_price'">
+        {{ sortOrder === 'ASC' ? '▲' : '▼' }}
+      </span>
+    </th>
+    <th @click="toggleSort('steal_type')" :class="{ sorted: sortField === 'steal_type' }">
+      Steal Type
+      <span v-if="sortField === 'steal_type'">
+        {{ sortOrder === 'ASC' ? '▲' : '▼' }}
+      </span>
+    </th>
+    <th @click="toggleSort('timestamp')" :class="{ sorted: sortField === 'timestamp' }">
+      Timestamp
+      <span v-if="sortField === 'timestamp'">
+        {{ sortOrder === 'ASC' ? '▲' : '▼' }}
+      </span>
+    </th>
+  </tr>
+</thead>
       <tbody>
         <tr v-for="(deal, idx) in paginatedSteals" :key="idx">
           <td>{{ deal.region }}</td>
@@ -84,7 +84,7 @@
     </table>
 
     <!-- Pagination -->
-    <div class="pagination">
+    <div class="minimal-pagination">
       <button @click="prevPage" :disabled="currentPage === 1">Previous</button>
       <span>Page {{ currentPage }} of {{ totalPages }}</span>
       <button @click="nextPage" :disabled="currentPage === totalPages">Next</button>
@@ -99,6 +99,7 @@ export default {
   name: 'StealsTable',
   data() {
     return {
+      originalSteals: [], // Store original data
       steals: [],
       metaData: {
         regions: [],
@@ -159,7 +160,7 @@ export default {
         };
 
         const res = await axios.get('http://localhost:8080/api/steals', { params });
-        this.steals = res.data;
+        this.originalSteals = res.data;
         this.applyFiltersAndSort();
       } catch (error) {
         console.error('Error fetching steals:', error);
@@ -176,7 +177,7 @@ export default {
     },
     applyFiltersAndSort() {
       // Filter first
-      let filteredSteals = this.steals.filter(deal => {
+      let filteredSteals = this.originalSteals.filter(deal => {
         const regionMatch = !this.filters.region || deal.region === this.filters.region;
         const productDescriptionMatch = !this.filters.product_description || deal.product_description === this.filters.product_description;
         const stealTypeMatch = !this.filters.steal_type || deal.steal_type === this.filters.steal_type;
@@ -216,40 +217,94 @@ export default {
 </script>
 
 <style scoped>
-table {
+.minimal-table {
   width: 100%;
   border-collapse: collapse;
   margin-top: 20px;
+  background-color: #fff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
 }
 
-th, td {
+.minimal-table th,
+.minimal-table td {
   border: 1px solid #ddd;
-  padding: 8px;
+  padding: 12px;
   text-align: left;
 }
 
-th {
-  background-color: #f2f2f2;
+.minimal-table th {
+  background-color: #f5f5f5;
+  cursor: pointer;
+  font-weight: bold;
 }
 
-.filters {
+.minimal-table tbody tr:hover {
+  background-color: #e9ecef;
+}
+
+.minimal-table th.sorted {
+  background-color: #007bff;
+  color: #fff;
+}
+.minimal-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+  justify-content: center;
   margin-bottom: 20px;
+  padding: 20px;
+  background-color: #f9f9f9;
+  border: 1px solid #ddd;
+  border-radius: 8px;
 }
 
-.filters label {
-  margin-right: 15px;
+.minimal-filters label {
+  font-weight: bold;
+  color: #333;
 }
 
-.pagination {
+.minimal-filters select,
+.minimal-filters input {
+  padding: 10px;
+  font-size: 16px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  /* width: 200px; */
+}
+
+.minimal-filters input {
+  text-align: center;
+}
+
+.minimal-filters input::placeholder {
+  color: #999;
+}
+
+
+.minimal-pagination {
   margin-top: 20px;
   text-align: center;
+}
+
+.minimal-pagination button {
+  padding: 8px 16px;
+  margin: 0 5px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.minimal-pagination button:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
 }
 
 button {
   margin: 0 5px;
   padding: 5px 10px;
-}
-th {
-  cursor: pointer;
 }
 </style>
