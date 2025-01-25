@@ -58,7 +58,7 @@
             <span v-if="sortField === 'spot_price'">{{ sortOrder === 'ASC' ? '▲' : '▼' }}</span>
           </th>
           <th @click="toggleSort('timestamp')" :class="{ sorted: sortField === 'timestamp' }">
-            Timestamp
+            Time Updated
             <span v-if="sortField === 'timestamp'">{{ sortOrder === 'ASC' ? '▲' : '▼' }}</span>
           </th>
         </tr>

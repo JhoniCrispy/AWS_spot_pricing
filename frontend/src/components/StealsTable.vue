@@ -27,7 +27,9 @@
         Steal Type:
         <select v-model="filters.steal_type">
           <option value="">All</option>
-          <option v-for="type in metaData.steal_types" :key="type" :value="type">{{ type }}</option>
+          <option v-for="type in metaData.steal_types" :key="type" :value="type">
+            {{ stealTypeNamingConversion[type] || type }}
+          </option>
         </select>
       </label>
     </div>
@@ -66,12 +68,7 @@
               {{ sortOrder === 'ASC' ? '▲' : '▼' }}
             </span>
           </th>
-          <th @click="toggleSort('timestamp')" :class="{ sorted: sortField === 'timestamp' }">
-            Timestamp
-            <span v-if="sortField === 'timestamp'">
-              {{ sortOrder === 'ASC' ? '▲' : '▼' }}
-            </span>
-          </th>
+
         </tr>
       </thead>
       <tbody>
@@ -80,8 +77,7 @@
           <td>{{ deal.instance_type }}</td>
           <td>{{ deal.product_description }}</td>
           <td>{{ deal.spot_price }}</td>
-          <td>{{ deal.steal_type }}</td>
-          <td>{{ deal.timestamp }}</td>
+          <td>{{ getHumanizedStealType(deal.steal_type) }}</td>
         </tr>
       </tbody>
     </table>
@@ -113,12 +109,17 @@ export default {
         region: '',
         product_description: '',
         steal_type: '',
-        instanceTypeSearch:'',
+        instanceTypeSearch: '',
       },
       currentPage: 1,
       pageSize: 10,
       sortField: 'timestamp',
-      sortOrder: 'DESC'
+      sortOrder: 'DESC',
+      stealTypeNamingConversion: {
+        below_80pct_average: "Current Price Below 80% of Its Own Average",
+        low_in_region: "Among the Cheapest Instances in This Region",
+        low_in_instance_type: "Among the Cheapest Instances of This Type"
+      }
     }
   },
   watch: {
@@ -137,6 +138,12 @@ export default {
     totalPages() {
       return Math.ceil(this.steals.length / this.pageSize);
     },
+    humanizedStealTypes() {
+      return this.metaData.steal_types.map(type => ({
+        value: type,
+        label: this.stealTypeNamingConversion[type] || type,
+      }))
+    },
     paginatedSteals() {
       const start = (this.currentPage - 1) * this.pageSize;
       return this.steals.slice(start, start + this.pageSize);
@@ -146,6 +153,9 @@ export default {
     parseNumeric(value) {
       const parsed = parseFloat(value);
       return isNaN(parsed) ? value : parsed;
+    },
+    getHumanizedStealType(type) {
+      return this.stealTypeNamingConversion[type] || type;
     },
     async fetchMetaData() {
       try {

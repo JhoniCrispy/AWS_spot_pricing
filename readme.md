@@ -1,6 +1,17 @@
 # AWS Spot Pricing App
 
-The **AWS Spot Pricing App** is designed to fetch AWS Spot Instance pricing data using a PHP script and the AWS SDK, store and manage the data in a MySQL database, and provide a PHP backend with a Vue.js frontend for easy access and visualization.
+The **AWS Spot Pricing App** is a comprehensive tool designed to fetch AWS Spot Instance pricing data, store it in a MySQL database, and provide an intuitive interface for accessing and analyzing this data. The application performs the following key functions:
+
+1. **Data Collection**: Utilizes a PHP script in conjunction with the AWS SDK to retrieve Spot pricing data from all AWS regions and instance types.
+
+2. **Database Management**: Automatically creates and manages three MySQL tables:
+    - `spot_prices`: Contains all fetched Spot pricing data.
+    - `latest_spot_prices`: Stores the current prices by recording the latest available date for each combination of instance type, region, and OS type.
+    - `steal_spot_pricing`: Identifies and stores "steals"—Spot offerings that are significantly lower compared to comparable options.
+
+3. **API and Frontend Access**: Provides a PHP backend that exposes RESTful APIs to access the database, and a Vue.js frontend that offers filtering, searching, and sorting functionalities for users to easily navigate through the Spot pricing data.
+
+The application ensures efficient data handling and offers users the ability to monitor current Spot prices and discover exceptional deals through its "Steals" feature.
 ## Quick Start Guide
 
 Follow these steps to quickly set up and run the AWS Spot Pricing App:
@@ -208,3 +219,11 @@ The application uses a MySQL database to store and manage AWS Spot pricing data.
 
 - **Security Notice**:
   - The `config.php` file is uploaded to Git. **Do not** include any sensitive information such as database passwords. Use environment variables or a secure method to manage secrets securely.
+
+
+
+
+![alt text](image.png)
+
+
+![alt text](image-1.png)

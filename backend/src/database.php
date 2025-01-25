@@ -34,21 +34,21 @@ function getPDOConnection($config)
 }
 function getRegions($pdo)
 {
-    $query = "SELECT DISTINCT region FROM spot_prices ORDER BY region";
+    $query = "SELECT DISTINCT region FROM latest_spot_prices ORDER BY region";
     $stmt = $pdo->query($query);
     return $stmt->fetchAll(PDO::FETCH_COLUMN);
 }
 
 function getProductDescriptions($pdo)
 {
-    $query = "SELECT DISTINCT product_description FROM spot_prices ORDER BY product_description";
+    $query = "SELECT DISTINCT product_description FROM latest_spot_prices ORDER BY product_description";
     $stmt = $pdo->query($query);
     return $stmt->fetchAll(PDO::FETCH_COLUMN);
 }
 
 function getPriceRange($pdo)
 {
-    $query = "SELECT MIN(spot_price) as min_price, MAX(spot_price) as max_price FROM spot_prices";
+    $query = "SELECT MIN(spot_price) as min_price, MAX(spot_price) as max_price FROM latest_spot_prices";
     $stmt = $pdo->query($query);
     return $stmt->fetch(PDO::FETCH_ASSOC);
 }
