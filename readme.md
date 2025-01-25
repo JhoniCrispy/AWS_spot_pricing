@@ -47,17 +47,7 @@ Follow these steps to quickly set up and run the AWS Spot Pricing App:
      aws_secret_access_key = YOUR_AWS_SECRET_ACCESS_KEY
      ```
 
-4. **Run the Fetch Spot Data Script**
-   
-   - Navigate to the `backend/src` directory:
-   
-   - Execute the `fetch-spot-data.php` script to fetch and populate the Spot pricing data. The default data range is the last 5 days. **Note:** This process may take some time depending on the volume of data.
-     
-     ```bash
-     php fetch-spot-data.php
-     ```
-
-5. **Install Backend Dependencies and Run the PHP Backend**
+4. **Install Backend Dependencies and Run the PHP Backend**
    
    - Navigate back to the `backend` directory:
    
@@ -74,6 +64,17 @@ Follow these steps to quickly set up and run the AWS Spot Pricing App:
      ```
    
    - The backend API will now be running at `http://localhost:8080`.
+
+5. **Run the Fetch Spot Data Script**
+   
+   - Navigate to the `backend/src` directory:
+   
+   - Execute the `fetch-spot-data.php` script to fetch and populate the Spot pricing data. The default data range is the last 5 days. **Note:** This process may take some time depending on the volume of data.
+     
+     ```bash
+     php fetch-spot-data.php
+     ```
+
 
 6. **Install Frontend Dependencies and Start the Vue.js Frontend**
    

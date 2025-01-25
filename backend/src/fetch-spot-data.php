@@ -46,6 +46,24 @@ function awsspotpricing()
         $pdo = getPDOConnection($config['db']);
 
 
+        // Create table if it doesn't exist
+        $createTableSQL = "
+                DROP TABLE IF EXISTS spot_prices;
+    
+                CREATE TABLE spot_prices (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    region VARCHAR(50) NOT NULL,
+                    instance_type VARCHAR(50) NOT NULL,
+                    product_description VARCHAR(100),
+                    spot_price DECIMAL(10,2) NOT NULL,
+                    availability_zone VARCHAR(50),
+                    timestamp DATETIME NOT NULL,
+                    INDEX idx_unique_combination (region, instance_type, product_description, timestamp)
+                );
+            ";
+        $pdo->exec($createTableSQL);
+
+
         // Prepare insert statement once
         $insertSQL = "
         INSERT INTO spot_prices(
@@ -86,11 +104,11 @@ function awsspotpricing()
                     if ($startTimeToFetch) {
                         $params['StartTime'] = $startTimeToFetch;
                     }
-        
+
                     if ($endTimeToFetch) {
                         $params['EndTime'] = $endTimeToFetch;
                     }
-        
+
                     if ($nextToken) {
                         $params['NextToken'] = $nextToken;
                     }
