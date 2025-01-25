@@ -9,9 +9,16 @@ The **AWS Spot Pricing App** is a comprehensive tool designed to fetch AWS Spot 
     - `latest_spot_prices`: Stores the current prices by recording the latest available date for each combination of instance type, region, and OS type.
     - `steal_spot_pricing`: Identifies and stores "steals"—Spot offerings that are significantly lower compared to comparable options.
 
+
 3. **API and Frontend Access**: Provides a PHP backend that exposes RESTful APIs to access the database, and a Vue.js frontend that offers filtering, searching, and sorting functionalities for users to easily navigate through the Spot pricing data.
 
-The application ensures efficient data handling and offers users the ability to monitor current Spot prices and discover exceptional deals through its "Steals" feature.
+
+4. **Frontend Screens**:
+    1. **Spot Pricing**: Displays the latest spot pricing data from the `latest_spot_prices` table, allowing users to view current prices based on instance type, region, and OS type.
+    
+    2. **Steals**: Presents the "steals" from the `steal_spot_pricing` table, highlighting Spot prices that are significantly lower compared to comparable options.
+
+
 ## Quick Start Guide
 
 Follow these steps to quickly set up and run the AWS Spot Pricing App:
