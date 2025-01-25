@@ -55,7 +55,7 @@ function awsspotpricing()
                     region VARCHAR(50) NOT NULL,
                     instance_type VARCHAR(50) NOT NULL,
                     product_description VARCHAR(100),
-                    spot_price DECIMAL(10,2) NOT NULL,
+                    spot_price DECIMAL(10,4) NOT NULL,
                     availability_zone VARCHAR(50),
                     timestamp DATETIME NOT NULL,
                     INDEX idx_unique_combination (region, instance_type, product_description, timestamp)
