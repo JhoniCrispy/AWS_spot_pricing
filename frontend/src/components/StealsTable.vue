@@ -76,7 +76,7 @@
           <td>{{ deal.region }}</td>
           <td>{{ deal.instance_type }}</td>
           <td>{{ deal.product_description }}</td>
-          <td>{{ deal.spot_price }}</td>
+          <td>{{ roundPrice(deal.spot_price) }}</td>
           <td>{{ getHumanizedStealType(deal.steal_type) }}</td>
         </tr>
       </tbody>
@@ -93,6 +93,7 @@
 
 <script>
 import axios from 'axios'
+import { roundPrice } from '../utils/nums_utils';
 
 export default {
   name: 'StealsTable',
@@ -150,6 +151,7 @@ export default {
     }
   },
   methods: {
+    roundPrice,
     parseNumeric(value) {
       const parsed = parseFloat(value);
       return isNaN(parsed) ? value : parsed;

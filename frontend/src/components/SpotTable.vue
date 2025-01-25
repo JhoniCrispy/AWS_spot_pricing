@@ -68,7 +68,7 @@
           <td>{{ price.region }}</td>
           <td>{{ price.instance_type }}</td>
           <td>{{ price.product_description }}</td>
-          <td>{{ price.spot_price.toFixed(3) }}</td>
+          <td>{{ roundPrice(price.spot_price) }}</td>
           <td>{{ price.timestamp }}</td>
         </tr>
       </tbody>
@@ -85,6 +85,7 @@
 
 <script>
 import axios from 'axios';
+import { roundPrice } from '../utils/nums_utils';
 
 export default {
   name: 'SpotTable',
@@ -129,6 +130,7 @@ export default {
   },
   methods: {
     // Parse numeric values to ensure proper sorting
+    roundPrice,
     parseNumeric(value) {
       // Convert to number, handling potential string representations
       const parsed = parseFloat(value);
