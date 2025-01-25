@@ -11,35 +11,21 @@
 
       <select v-model="selectedProductDescription" @change="debouncedFetch">
         <option value="">All Product Descriptions</option>
-        <option 
-          v-for="desc in metadata.product_descriptions" 
-          :key="desc" 
-          :value="desc"
-        >
+        <option v-for="desc in metadata.product_descriptions" :key="desc" :value="desc">
           {{ desc }}
         </option>
       </select>
 
       <div>
-        Price Range: 
-        <input 
-          type="number" 
-          v-model.number="minPrice" 
-          :min="metadata.price_range.min_price"
-          :max="metadata.price_range.max_price"
-          @change="debouncedFetch"
-        />
+        Price Range:
+        <input type="number" v-model.number="minPrice" :min="metadata.price_range.min_price"
+          :max="metadata.price_range.max_price" @change="debouncedFetch" />
         to
-        <input 
-          type="number" 
-          v-model.number="maxPrice" 
-          :min="metadata.price_range.min_price"
-          :max="metadata.price_range.max_price"
-          @change="debouncedFetch"
-        />
+        <input type="number" v-model.number="maxPrice" :min="metadata.price_range.min_price"
+          :max="metadata.price_range.max_price" @change="debouncedFetch" />
       </div>
     </div>
-    
+
     <table>
       <thead>
         <tr>
@@ -51,7 +37,7 @@
         </tr>
       </thead>
       <tbody>
-        <tr v-for="price in prices" :key="`${price.region}-${price.timestamp}`">
+        <tr v-for="price in prices" :key="`${price.instance_type}-${price.timestamp}`">
           <td>{{ price.region }}</td>
           <td>{{ price.instance_type }}</td>
           <td>{{ price.product_description }}</td>
@@ -72,7 +58,7 @@
 <script>
 import axios from 'axios'
 import debounce from 'lodash/debounce'
-
+axios.defaults.baseURL = 'http://localhost:8080';
 export default {
   name: 'SpotTable',
   data() {
@@ -91,21 +77,27 @@ export default {
       sortOrder: 'DESC',
       currentPage: 1,
       totalPages: 1,
-      limit: 100
+      limit: 25
     }
   },
   created() {
-    this.debouncedFetch = debounce(this.fetchPrices, 300)
-    this.fetchMetadata()
+    this.debouncedFetch = debounce(this.fetchPrices, 300);
+    this.fetchMetadata().then(() => {
+      if (this.minPrice !== null && this.maxPrice !== null) {
+        this.fetchPrices();
+      }
+    });
   },
   methods: {
     async fetchMetadata() {
-      try {
+      try {///fsf
         const response = await axios.get('/api/spot-prices/metadata')
         this.metadata = response.data
-        // Set initial price range
         this.minPrice = this.metadata.price_range.min_price
         this.maxPrice = this.metadata.price_range.max_price
+
+        // Trigger price fetch after setting metadata
+        this.fetchPrices()
       } catch (error) {
         console.error('Error fetching metadata:', error)
       }

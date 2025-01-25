@@ -65,15 +65,16 @@ function awsspotpricing()
         // Create table if it doesn't exist
         $createTableSQL = "
             DROP TABLE IF EXISTS spot_prices;
-            
-            CREATE TABLE IF NOT EXISTS spot_prices (
-                id INT AUTO_INCREMENT PRIMARY KEY NOT NULL,
+
+            CREATE TABLE spot_prices (
+                id INT AUTO_INCREMENT PRIMARY KEY,
                 region VARCHAR(50) NOT NULL,
                 instance_type VARCHAR(50) NOT NULL,
-                product_description VARCHAR(100) DEFAULT NULL,
+                product_description VARCHAR(100),
                 spot_price DECIMAL(10,2) NOT NULL,
-                availability_zone VARCHAR(50) DEFAULT NULL,
-                timestamp DATETIME NOT NULL
+                availability_zone VARCHAR(50),
+                timestamp DATETIME NOT NULL,
+                INDEX idx_unique_combination (region, instance_type, product_description, timestamp)
             );
         ";
         $pdo->exec($createTableSQL);
@@ -112,12 +113,10 @@ function awsspotpricing()
             do {
                 try {
                     $response = $ec2Client->describeSpotPriceHistory([
-                        'StartTime' => new \DateTime(datetime: '-1 day'),
+                        'StartTime' => new \DateTime('-1 day'),
                         'EndTime' => new \DateTime('now'),
-                        'MaxResults' => 1000,
                         'NextToken' => $nextToken,
                     ]);
-
                     $spotPriceHistory = $response['SpotPriceHistory'] ?? [];
                     if (count($spotPriceHistory) === 0) {
                         // No more data, break out
