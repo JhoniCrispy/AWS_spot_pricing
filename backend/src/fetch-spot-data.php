@@ -9,6 +9,7 @@ use Aws\Ec2\Ec2Client;
 use Aws\Exception\AwsException;
 use Dotenv\Dotenv;
 use Aws\Credentials\CredentialProvider;
+$config = require __DIR__ . '/config.php';
 
 
 
@@ -17,22 +18,23 @@ function awsspotpricing()
 
     try {
         $config = require __DIR__ . '/config.php';
-        // 1. Load environment variables from .env
+
         $dotenv = Dotenv::createImmutable(__DIR__);
         $dotenv->load();
         $awsCredentialsPath = $_ENV['AWS_CREDENTIALS_PATH'];
         $awsProfile = $_ENV['AWS_PROFILE'];
         $default_region = $_ENV['AWS_DEFAULT_REGION'];
 
-        // Specify the 'yoni' profile
+
         $provider = CredentialProvider::ini($awsProfile, $awsCredentialsPath);
 
-        // 4. Create an EC2 client (in the default region) to list all regions
+        $startTime = microtime(true);
+
         $ec2 = new Ec2Client([
             'version' => 'latest',
             'region' => $default_region,
             'credentials' => $provider,
-            // *** Disables SSL verification (NOT recommended in production) ***
+
             'http' => ['verify' => false],
         ]);
 
@@ -44,10 +46,6 @@ function awsspotpricing()
         $pdo = getPDOConnection($config['db']);
 
 
-
-
-        $startTime = microtime(true);
-
         // Prepare insert statement once
         $insertSQL = "
         INSERT INTO spot_prices(
@@ -56,8 +54,11 @@ function awsspotpricing()
     ";
         $stmt = $pdo->prepare($insertSQL);
         echo "Query: " . $insertSQL . PHP_EOL;
-        // 8. Fetch Spot Price History for each region, page by page
+
         $totalRecords = 0;
+
+        $startTimeToFetch = isset($config['fetch-spot-data']['StartTime']) && $config['fetch-spot-data']['StartTime'] !== null ? new \DateTime($config['fetch-spot-data']['StartTime']) : null;
+        $endTimeToFetch = isset($config['fetch-spot-data']['EndTime']) && $config['fetch-spot-data']['EndTime'] !== null ? new \DateTime($config['fetch-spot-data']['EndTime']) : null;
 
         foreach ($regions as $regionObj) {
             $regionName = $regionObj['RegionName'] ?? null;
@@ -80,11 +81,22 @@ function awsspotpricing()
 
             do {
                 try {
-                    $response = $ec2Client->describeSpotPriceHistory([
-                        // 'StartTime' => new \DateTime('-5 day'),
-                        'EndTime' => new \DateTime('-6 day'),
-                        'NextToken' => $nextToken,
-                    ]);
+                    $params = [];
+
+                    if ($startTimeToFetch) {
+                        $params['StartTime'] = $startTimeToFetch;
+                    }
+        
+                    if ($endTimeToFetch) {
+                        $params['EndTime'] = $endTimeToFetch;
+                    }
+        
+                    if ($nextToken) {
+                        $params['NextToken'] = $nextToken;
+                    }
+
+                    $response = $ec2Client->describeSpotPriceHistory($params);
+
                     $spotPriceHistory = $response['SpotPriceHistory'] ?? [];
                     if (count($spotPriceHistory) === 0) {
                         // No more data, break out
@@ -134,15 +146,12 @@ function awsspotpricing()
             } while ($nextToken);
         }
 
-        // // 9. Close the CSV file
-        // fclose($fp);
         $endTime = microtime(true);
         $executionTime = $endTime - $startTime;
         echo "Total execution time: " . round($executionTime, 2) . " seconds\n";
         echo "Memory peak usage: " . memory_get_peak_usage(true) / 1024 / 1024 . " MB\n";
         echo "\n=== Spot Price Data Fetched Successfully ===\n";
         echo "Total records inserted: {$totalRecords}\n";
-        // echo "CSV file created: {$csvFileName}\n";
         echo "Data saved to database table 'spot_prices'.\n";
 
     } catch (AwsException $e) {
@@ -201,7 +210,7 @@ function createStealSpotPricingTable()
 
         $config = require __DIR__ . '/config.php';
         $pdo = getPDOConnection($config['db']);
-        
+
         // Drop table if exists before creating
         $dropTableSQL = "DROP TABLE IF EXISTS steal_spot_pricing";
         $pdo->exec($dropTableSQL);
@@ -222,7 +231,7 @@ function createStealSpotPricingTable()
             )
         ";
         $pdo->exec($createStealsSQL);
-        
+
         function calculate_over_time_steals($pdo)
         {
             // 3. Retrieve all rows from latest_spot_prices (the table holding the newest prices for each instance)
@@ -467,7 +476,7 @@ function createStealSpotPricingTable()
                 echo "Error in calculateLowInInstanceType(): " . $e->getMessage() . "\n";
             }
         }
-        
+
         calculate_over_time_steals($pdo);
         calculateLowInInstanceType($pdo);
         calculateLowInRegion($pdo);
@@ -482,6 +491,18 @@ function createStealSpotPricingTable()
 }
 
 
-// awsspotpricing();
-// createLatestPricesTable();
-createStealSpotPricingTable();
+
+// Runing the functions based on config file.
+// Retrieve fetch-spot-data settings
+$fetchSpotData = $config['fetch-spot-data'] ?? [];
+if (isset($fetchSpotData['run_awsspotpricing']) && $fetchSpotData['run_awsspotpricing'] === true) {
+    awsspotpricing();
+}
+
+if (isset($fetchSpotData['run_createLatestPricesTable']) && $fetchSpotData['run_createLatestPricesTable'] === true) {
+    createLatestPricesTable();
+}
+
+if (isset($fetchSpotData['run_createStealSpotPricingTable']) && $fetchSpotData['run_createStealSpotPricingTable'] === true) {
+    createStealSpotPricingTable();
+}

@@ -4,6 +4,10 @@
 
     <div class="minimal-filters">
       <label>
+        Instance Type:
+        <input v-model="instanceTypeSearch" placeholder="Search instance type" />
+      </label>
+      <label>
         Region:
         <select v-model="selectedRegion">
           <option value="">All Regions</option>
@@ -97,6 +101,7 @@ export default {
       selectedProductDescription: '',
       minPrice: null,
       maxPrice: null,
+      instanceTypeSearch: '', // New data property for free text filter
       sortField: 'timestamp',
       sortOrder: 'DESC',
       currentPage: 1,
@@ -116,7 +121,8 @@ export default {
     selectedRegion: 'applyFiltersAndSort',
     selectedProductDescription: 'applyFiltersAndSort',
     minPrice: 'applyFiltersAndSort',
-    maxPrice: 'applyFiltersAndSort'
+    maxPrice: 'applyFiltersAndSort',
+    instanceTypeSearch: 'applyFiltersAndSort' // Watcher for the free text filter
   },
   created() {
     this.fetchMetadata();
@@ -157,36 +163,40 @@ export default {
         console.error('Error fetching spot prices:', error);
       }
     },
+
     applyFiltersAndSort() {
-      // Filter with parsed numeric comparisons
-      this.filteredPrices = this.allPrices.filter(price => {
-        const regionMatch = !this.selectedRegion || price.region === this.selectedRegion;
-        const productDescriptionMatch = !this.selectedProductDescription || price.product_description === this.selectedProductDescription;
-        const minPriceMatch = this.minPrice === null || price.spot_price >= this.minPrice;
-        const maxPriceMatch = this.maxPrice === null || price.spot_price <= this.maxPrice;
+    // Convert the search text to lowercase for case-insensitive comparison
+    const searchText = this.instanceTypeSearch.trim().toLowerCase();
 
-        return regionMatch && productDescriptionMatch && minPriceMatch && maxPriceMatch;
-      });
+    this.filteredPrices = this.allPrices.filter(price => {
+      const regionMatch = !this.selectedRegion || price.region === this.selectedRegion;
+      const productDescriptionMatch = !this.selectedProductDescription || price.product_description === this.selectedProductDescription;
+      const minPriceMatch = this.minPrice === null || price.spot_price >= this.minPrice;
+      const maxPriceMatch = this.maxPrice === null || price.spot_price <= this.maxPrice;
+      
+      // New condition for instance type search
+      const instanceTypeMatch = !searchText || price.instance_type.toLowerCase().includes(searchText);
 
-      // Improved sorting with type-aware comparison
-      this.filteredPrices.sort((a, b) => {
-        const field = this.sortField;
-        const valA = this.parseNumeric(a[field]);
-        const valB = this.parseNumeric(b[field]);
+      return regionMatch && productDescriptionMatch && minPriceMatch && maxPriceMatch && instanceTypeMatch;
+    });
 
-        // Handle different types of sorting
-        if (typeof valA === 'number' && typeof valB === 'number') {
-          return this.sortOrder === 'ASC' ? valA - valB : valB - valA;
-        } else {
-          // Fallback to string comparison for non-numeric fields
-          return this.sortOrder === 'ASC'
-            ? String(valA).localeCompare(String(valB))
-            : String(valB).localeCompare(String(valA));
-        }
-      });
+    // Sorting logic remains the same
+    this.filteredPrices.sort((a, b) => {
+      const field = this.sortField;
+      const valA = this.parseNumeric(a[field]);
+      const valB = this.parseNumeric(b[field]);
 
-      this.currentPage = 1;
-    },
+      if (typeof valA === 'number' && typeof valB === 'number') {
+        return this.sortOrder === 'ASC' ? valA - valB : valB - valA;
+      } else {
+        return this.sortOrder === 'ASC'
+          ? String(valA).localeCompare(String(valB))
+          : String(valB).localeCompare(String(valA));
+      }
+    });
+
+    this.currentPage = 1;
+  },
     toggleSort(field) {
       if (this.sortField === field) {
         this.sortOrder = this.sortOrder === 'ASC' ? 'DESC' : 'ASC';

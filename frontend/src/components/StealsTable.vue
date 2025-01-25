@@ -11,7 +11,10 @@
           <option v-for="region in metaData.regions" :key="region" :value="region">{{ region }}</option>
         </select>
       </label>
-
+      <label>
+        Instance Type:
+        <input v-model="filters.instanceTypeSearch" placeholder="Search instance type" />
+      </label>
       <label>
         Product Description:
         <select v-model="filters.product_description">
@@ -32,45 +35,45 @@
     <!-- Steals Table -->
     <table class="minimal-table">
       <thead>
-  <tr>
-    <th @click="toggleSort('region')" :class="{ sorted: sortField === 'region' }">
-      Region 
-      <span v-if="sortField === 'region'">
-        {{ sortOrder === 'ASC' ? '▲' : '▼' }}
-      </span>
-    </th>
-    <th @click="toggleSort('instance_type')" :class="{ sorted: sortField === 'instance_type' }">
-      Instance Type
-      <span v-if="sortField === 'instance_type'">
-        {{ sortOrder === 'ASC' ? '▲' : '▼' }}
-      </span>
-    </th>
-    <th @click="toggleSort('product_description')" :class="{ sorted: sortField === 'product_description' }">
-      Product Description
-      <span v-if="sortField === 'product_description'">
-        {{ sortOrder === 'ASC' ? '▲' : '▼' }}
-      </span>
-    </th>
-    <th @click="toggleSort('spot_price')" :class="{ sorted: sortField === 'spot_price' }">
-      Spot Price
-      <span v-if="sortField === 'spot_price'">
-        {{ sortOrder === 'ASC' ? '▲' : '▼' }}
-      </span>
-    </th>
-    <th @click="toggleSort('steal_type')" :class="{ sorted: sortField === 'steal_type' }">
-      Steal Type
-      <span v-if="sortField === 'steal_type'">
-        {{ sortOrder === 'ASC' ? '▲' : '▼' }}
-      </span>
-    </th>
-    <th @click="toggleSort('timestamp')" :class="{ sorted: sortField === 'timestamp' }">
-      Timestamp
-      <span v-if="sortField === 'timestamp'">
-        {{ sortOrder === 'ASC' ? '▲' : '▼' }}
-      </span>
-    </th>
-  </tr>
-</thead>
+        <tr>
+          <th @click="toggleSort('region')" :class="{ sorted: sortField === 'region' }">
+            Region
+            <span v-if="sortField === 'region'">
+              {{ sortOrder === 'ASC' ? '▲' : '▼' }}
+            </span>
+          </th>
+          <th @click="toggleSort('instance_type')" :class="{ sorted: sortField === 'instance_type' }">
+            Instance Type
+            <span v-if="sortField === 'instance_type'">
+              {{ sortOrder === 'ASC' ? '▲' : '▼' }}
+            </span>
+          </th>
+          <th @click="toggleSort('product_description')" :class="{ sorted: sortField === 'product_description' }">
+            Product Description
+            <span v-if="sortField === 'product_description'">
+              {{ sortOrder === 'ASC' ? '▲' : '▼' }}
+            </span>
+          </th>
+          <th @click="toggleSort('spot_price')" :class="{ sorted: sortField === 'spot_price' }">
+            Spot Price
+            <span v-if="sortField === 'spot_price'">
+              {{ sortOrder === 'ASC' ? '▲' : '▼' }}
+            </span>
+          </th>
+          <th @click="toggleSort('steal_type')" :class="{ sorted: sortField === 'steal_type' }">
+            Steal Type
+            <span v-if="sortField === 'steal_type'">
+              {{ sortOrder === 'ASC' ? '▲' : '▼' }}
+            </span>
+          </th>
+          <th @click="toggleSort('timestamp')" :class="{ sorted: sortField === 'timestamp' }">
+            Timestamp
+            <span v-if="sortField === 'timestamp'">
+              {{ sortOrder === 'ASC' ? '▲' : '▼' }}
+            </span>
+          </th>
+        </tr>
+      </thead>
       <tbody>
         <tr v-for="(deal, idx) in paginatedSteals" :key="idx">
           <td>{{ deal.region }}</td>
@@ -109,7 +112,8 @@ export default {
       filters: {
         region: '',
         product_description: '',
-        steal_type: ''
+        steal_type: '',
+        instanceTypeSearch:'',
       },
       currentPage: 1,
       pageSize: 10,
@@ -181,19 +185,21 @@ export default {
         const regionMatch = !this.filters.region || deal.region === this.filters.region;
         const productDescriptionMatch = !this.filters.product_description || deal.product_description === this.filters.product_description;
         const stealTypeMatch = !this.filters.steal_type || deal.steal_type === this.filters.steal_type;
+        const instanceTypeMatch = !this.filters.instanceTypeSearch ||
+          deal.instance_type.toLowerCase().includes(this.filters.instanceTypeSearch.toLowerCase());
 
-        return regionMatch && productDescriptionMatch && stealTypeMatch;
+        return regionMatch && productDescriptionMatch && stealTypeMatch && instanceTypeMatch;
       });
 
-      // Then sort
+      // Then sort (existing sorting logic remains the same)
       filteredSteals.sort((a, b) => {
         const valA = this.parseNumeric(a[this.sortField]);
         const valB = this.parseNumeric(b[this.sortField]);
-        
+
         if (typeof valA === 'number' && typeof valB === 'number') {
           return this.sortOrder === 'ASC' ? valA - valB : valB - valA;
         } else {
-          return this.sortOrder === 'ASC' 
+          return this.sortOrder === 'ASC'
             ? String(valA).localeCompare(String(valB))
             : String(valB).localeCompare(String(valA));
         }
@@ -248,6 +254,7 @@ export default {
   background-color: #007bff;
   color: #fff;
 }
+
 .minimal-filters {
   display: flex;
   flex-wrap: wrap;
