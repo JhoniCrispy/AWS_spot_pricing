@@ -1,7 +1,6 @@
 # AWS Spot Pricing App
 
 The **AWS Spot Pricing App** is designed to fetch AWS Spot Instance pricing data using a PHP script and the AWS SDK, store and manage the data in a MySQL database, and provide a PHP backend with a Vue.js frontend for easy access and visualization.
-
 ## Quick Start Guide
 
 Follow these steps to quickly set up and run the AWS Spot Pricing App:
@@ -12,51 +11,105 @@ Follow these steps to quickly set up and run the AWS Spot Pricing App:
 
 2. **Ensure MySQL is Running**
    
-   - Make sure you have a running MySQL instance accessible according to `backend/src/config.php` file.
+   - Make sure you have a running MySQL instance accessible at `localhost:3306`.
+   - **Using Docker for Easy MySQL Instance Start**:
+     
+     You can quickly start a MySQL instance using Docker with the following command:
+     
+     ```bash
+     docker run --name mysql_container \
+       -e MYSQL_ROOT_PASSWORD=mysqlpw \
+       -e MYSQL_DATABASE=aws_spot \
+       -e MYSQL_USER=root \
+       -e MYSQL_PASSWORD=mysqlpw \
+       -p 3306:3306 \
+       -v mysql_data:/var/lib/mysql \
+       -d mysql:latest --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+     ```
 
+3. **Configure AWS Credentials**
+   
+   - Navigate to the `backend/src/` directory and create a `.env` file:
+   
+   - Open the `.env` file in your preferred text editor and add the following lines. Replace `"your path to aws credentials"` with the actual path to your AWS credentials file:
+     
+     ```env
+     AWS_CREDENTIALS_PATH="your path to aws credentials"
+     AWS_PROFILE='aws-spot-pricing'
+     AWS_DEFAULT_REGION=us-east-1
+     ```
+   
+   - Ensure your AWS credentials file (typically located at `~/.aws/credentials`) includes a profile matching the one specified in `.env` (`aws-spot-pricing`). Here's how your credentials file should look:
+     
+     ```ini
+     [aws-spot-pricing]
+     aws_access_key_id = YOUR_AWS_ACCESS_KEY_ID
+     aws_secret_access_key = YOUR_AWS_SECRET_ACCESS_KEY
+     ```
 
-3. **Run the Fetch Spot Data Script**
+4. **Run the Fetch Spot Data Script**
    
    - Navigate to the `backend/src` directory:
-     ```bash
-     cd backend/src
-     ```
+   
    - Execute the `fetch-spot-data.php` script to fetch and populate the Spot pricing data. The default data range is the last 5 days. **Note:** This process may take some time depending on the volume of data.
+     
      ```bash
      php fetch-spot-data.php
      ```
 
-4. **Install Backend Dependencies and Run the PHP Backend**
+5. **Install Backend Dependencies and Run the PHP Backend**
    
    - Navigate back to the `backend` directory:
+   
    - Install PHP dependencies using Composer:
+     
      ```bash
      composer install
      ```
+   
    - Start the PHP backend server:
+     
      ```bash
      php -S localhost:8080 -t src/public
      ```
+   
    - The backend API will now be running at `http://localhost:8080`.
 
-5. **Install Frontend Dependencies and Start the Vue.js Frontend**
+6. **Install Frontend Dependencies and Start the Vue.js Frontend**
    
    - Open a new terminal window or tab.
+   
    - Navigate to the `frontend` directory:
+   
    - Install Node.js dependencies using npm:
+     
      ```bash
      npm install
      ```
+   
    - Start the Vue.js development server on port 3000:
+     
      ```bash
      npm run serve -- --port 3000
      ```
+   
    - The frontend application will be accessible at `http://localhost:3000`.
 
 ---
 
 **You're all set!** Open your browser and navigate to `http://localhost:3000` to start using the AWS Spot Pricing App.
 
+
+
+## Add AWS Credentials to .env
+
+Open the `.env` file in your preferred text editor and add the following lines. Replace `"your path to aws credentials"` with the actual path to your AWS credentials file:
+
+```env
+AWS_CREDENTIALS_PATH="your path to aws credentials"
+AWS_PROFILE='aws-spot-pricing'
+AWS_DEFAULT_REGION=us-east-1
+```
 ## Fetching Data Process
 
 The `fetch-spot-data` script performs the following functions:
@@ -122,14 +175,35 @@ npm run serve -- --port 3000
 
 ## MySQL Database
 
-The application uses a MySQL database to store and manage AWS Spot pricing data. 
+The application uses a MySQL database to store and manage AWS Spot pricing data.
 
 - **Requirements**:
-  - Ensure you have access to a running MySQL instance.
+  - Ensure you have access to a running MySQL instance on `localhost:3306`.
 
 - **Setup**:
-  - **Configure Database Connection**: Edit the `backend/src/config.php` file with your MySQL database credentials.
-  - **Automatic Table Creation**: The `fetch-spot-data` script will automatically create the necessary tables (`spot_prices`, `latest_spot_prices`, `steal_spot_pricing`) if they do not exist.
+
+  - **Using Docker for Easy MySQL Instance Start**:
+
+    You can quickly start a MySQL instance using Docker with the following command:
+
+    ```bash
+    docker run --name mysql_container \
+      -e MYSQL_ROOT_PASSWORD=mysqlpw \
+      -e MYSQL_DATABASE=aws_spot \
+      -e MYSQL_USER=root \
+      -e MYSQL_PASSWORD=mysqlpw \
+      -p 3306:3306 \
+      -v mysql_data:/var/lib/mysql \
+      -d mysql:latest --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    ```
+
+  - **Configure Database Connection**:
+
+    Edit the `backend/src/config.php` file with your MySQL database credentials to ensure the backend can connect to the database.
+
+  - **Automatic Table Creation**:
+
+    The `fetch-spot-data` script will automatically create the necessary tables (`spot_prices`, `latest_spot_prices`, `steal_spot_pricing`) if they do not exist.
 
 - **Security Notice**:
   - The `config.php` file is uploaded to Git. **Do not** include any sensitive information such as database passwords. Use environment variables or a secure method to manage secrets securely.

@@ -21,7 +21,7 @@ return [
         'run_createStealSpotPricingTable' => true,
 
         // Control the start and end time of fetching availabe spot data from aws. insert null to get furthest/latests. 
-        'StartTime' => null,
-        'EndTime' => null
+        'StartTime' => '-1 day',
+        'EndTime' => 'now'
     ]
 ];
