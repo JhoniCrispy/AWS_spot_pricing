@@ -96,11 +96,11 @@
         </tr>
       </thead>
       <tbody>
-        <tr v-for="price in paginatedPrices" :key="`${price.instance_type}-${price.timestamp}`">
+        <tr v-for="(price, idx) in paginatedPrices" :key="idx">
           <td>{{ price.region }}</td>
           <td>{{ price.instance_type }}</td>
           <td>{{ price.product_description }}</td>
-          <td>{{ price.spot_price.toFixed(4) }}</td>
+          <td>{{ price.spot_price.toFixed(3) }}</td>
           <td>{{ price.timestamp }}</td>
         </tr>
       </tbody>

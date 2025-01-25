@@ -33,13 +33,42 @@
     <table>
       <thead>
         <tr>
-          <th>Region</th>
-          <th>Instance Type</th>
-          <th>Product Description</th>
-          <th>Spot Price</th>
-          <th>Availability Zone</th>
-          <th>Steal Type</th>
-          <th>Timestamp</th>
+          <th @click="toggleSort('region')">
+            Region 
+            <span v-if="sortField === 'region'">
+              {{ sortOrder === 'ASC' ? '▲' : '▼' }}
+            </span>
+          </th>
+          <th @click="toggleSort('instance_type')">
+            Instance Type
+            <span v-if="sortField === 'instance_type'">
+              {{ sortOrder === 'ASC' ? '▲' : '▼' }}
+            </span>
+          </th>
+          <th @click="toggleSort('product_description')">
+            Product Description
+            <span v-if="sortField === 'product_description'">
+              {{ sortOrder === 'ASC' ? '▲' : '▼' }}
+            </span>
+          </th>
+          <th @click="toggleSort('spot_price')">
+            Spot Price
+            <span v-if="sortField === 'spot_price'">
+              {{ sortOrder === 'ASC' ? '▲' : '▼' }}
+            </span>
+          </th>
+          <th @click="toggleSort('steal_type')">
+            Steal Type
+            <span v-if="sortField === 'steal_type'">
+              {{ sortOrder === 'ASC' ? '▲' : '▼' }}
+            </span>
+          </th>
+          <th @click="toggleSort('timestamp')">
+            Timestamp
+            <span v-if="sortField === 'timestamp'">
+              {{ sortOrder === 'ASC' ? '▲' : '▼' }}
+            </span>
+          </th>
         </tr>
       </thead>
       <tbody>
@@ -48,7 +77,6 @@
           <td>{{ deal.instance_type }}</td>
           <td>{{ deal.product_description }}</td>
           <td>{{ deal.spot_price }}</td>
-          <td>{{ deal.availability_zone }}</td>
           <td>{{ deal.steal_type }}</td>
           <td>{{ deal.timestamp }}</td>
         </tr>
@@ -83,15 +111,16 @@ export default {
         steal_type: ''
       },
       currentPage: 1,
-      pageSize: 10
+      pageSize: 10,
+      sortField: 'timestamp',
+      sortOrder: 'DESC'
     }
   },
   watch: {
-    // Watch for changes in filter selections and fetch data automatically
     filters: {
       deep: true,
       handler() {
-        this.fetchSteals();
+        this.applyFiltersAndSort();
       }
     }
   },
@@ -109,6 +138,10 @@ export default {
     }
   },
   methods: {
+    parseNumeric(value) {
+      const parsed = parseFloat(value);
+      return isNaN(parsed) ? value : parsed;
+    },
     async fetchMetaData() {
       try {
         const res = await axios.get('http://localhost:8080/api/steals/meta');
@@ -127,10 +160,46 @@ export default {
 
         const res = await axios.get('http://localhost:8080/api/steals', { params });
         this.steals = res.data;
-        this.currentPage = 1;
+        this.applyFiltersAndSort();
       } catch (error) {
         console.error('Error fetching steals:', error);
       }
+    },
+    toggleSort(field) {
+      if (this.sortField === field) {
+        this.sortOrder = this.sortOrder === 'ASC' ? 'DESC' : 'ASC';
+      } else {
+        this.sortField = field;
+        this.sortOrder = 'ASC';
+      }
+      this.applyFiltersAndSort();
+    },
+    applyFiltersAndSort() {
+      // Filter first
+      let filteredSteals = this.steals.filter(deal => {
+        const regionMatch = !this.filters.region || deal.region === this.filters.region;
+        const productDescriptionMatch = !this.filters.product_description || deal.product_description === this.filters.product_description;
+        const stealTypeMatch = !this.filters.steal_type || deal.steal_type === this.filters.steal_type;
+
+        return regionMatch && productDescriptionMatch && stealTypeMatch;
+      });
+
+      // Then sort
+      filteredSteals.sort((a, b) => {
+        const valA = this.parseNumeric(a[this.sortField]);
+        const valB = this.parseNumeric(b[this.sortField]);
+        
+        if (typeof valA === 'number' && typeof valB === 'number') {
+          return this.sortOrder === 'ASC' ? valA - valB : valB - valA;
+        } else {
+          return this.sortOrder === 'ASC' 
+            ? String(valA).localeCompare(String(valB))
+            : String(valB).localeCompare(String(valA));
+        }
+      });
+
+      this.steals = filteredSteals;
+      this.currentPage = 1;
     },
     nextPage() {
       if (this.currentPage < this.totalPages) {
@@ -179,5 +248,8 @@ th {
 button {
   margin: 0 5px;
   padding: 5px 10px;
+}
+th {
+  cursor: pointer;
 }
 </style>
