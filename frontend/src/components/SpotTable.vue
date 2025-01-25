@@ -116,7 +116,7 @@ export default {
             max_price: this.maxPrice
           }
         })
-
+        console.log("responseedddd" ,response)
         this.prices = response.data.data
         this.totalPages = response.data.pagination.total_pages
       } catch (error) {

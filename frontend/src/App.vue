@@ -1,7 +1,7 @@
 <template>
   <div id="app">
     <h1>AWS Spot Pricing</h1>
-    
+
     <!-- Tab Navigation -->
     <div class="tabs">
       <button 
@@ -18,9 +18,13 @@
       </button>
     </div>
 
-    <!-- Conditional Rendering of Components -->
-    <spot-table v-if="currentTab === 'spot'" />
-    <steals-table v-else-if="currentTab === 'steals'" />
+    <!-- Always Render Components, Control Visibility with CSS -->
+    <div :class="{ hidden: currentTab !== 'spot' }">
+      <spot-table />
+    </div>
+    <div :class="{ hidden: currentTab !== 'steals' }">
+      <steals-table />
+    </div>
   </div>
 </template>
 
@@ -60,5 +64,9 @@ export default {
 .tabs button.active {
   background-color: #007bff;
   color: white;
+}
+
+.hidden {
+  display: none;
 }
 </style>

@@ -64,27 +64,19 @@ function getSpotPrices($pdo, $params, $limit, $offset, $sortColumn, $sortOrder)
     $filterConditions = [];
 
     if (isset($params['region'])) {
-        $filterConditions[] = "sp.region = :region";
+        $filterConditions[] = "region = :region";
     }
 
     if (isset($params['product_description'])) {
-        $filterConditions[] = "sp.product_description = :product_description";
+        $filterConditions[] = "product_description = :product_description";
     }
 
-    $filterConditions[] = "sp.spot_price BETWEEN :min_price AND :max_price";
+    $filterConditions[] = "spot_price BETWEEN :min_price AND :max_price";
 
+    // Updated query to use the preprocessed table
     $query = "
-        SELECT sp.region, sp.instance_type, sp.product_description, sp.spot_price, sp.timestamp 
-        FROM spot_prices sp
-        INNER JOIN (
-            SELECT region, instance_type, product_description, MAX(timestamp) AS latest_timestamp
-            FROM spot_prices
-            GROUP BY region, instance_type, product_description
-        ) latest 
-        ON sp.region = latest.region 
-        AND sp.instance_type = latest.instance_type 
-        AND sp.product_description = latest.product_description 
-        AND sp.timestamp = latest.latest_timestamp
+        SELECT region, instance_type, product_description, spot_price, timestamp 
+        FROM latest_spot_prices
     ";
 
     if (!empty($filterConditions)) {
@@ -112,41 +104,27 @@ function getSpotPrices($pdo, $params, $limit, $offset, $sortColumn, $sortOrder)
     $stmt->execute();
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
+
 function getTotalSpotPricesCount($pdo, $params)
 {
     $filterConditions = [];
 
     if (isset($params['region'])) {
-        $filterConditions[] = "sp.region = :region";
+        $filterConditions[] = "region = :region";
     }
 
     if (isset($params['product_description'])) {
-        $filterConditions[] = "sp.product_description = :product_description";
+        $filterConditions[] = "product_description = :product_description";
     }
 
-    $filterConditions[] = "sp.spot_price BETWEEN :min_price AND :max_price";
+    $filterConditions[] = "spot_price BETWEEN :min_price AND :max_price";
 
-    $query = "
-        SELECT COUNT(*) 
-        FROM (
-            SELECT sp.region, sp.instance_type, sp.product_description
-            FROM spot_prices sp
-            INNER JOIN (
-                SELECT region, instance_type, product_description, MAX(timestamp) AS latest_timestamp
-                FROM spot_prices
-                GROUP BY region, instance_type, product_description
-            ) latest 
-            ON sp.region = latest.region 
-            AND sp.instance_type = latest.instance_type 
-            AND sp.product_description = latest.product_description 
-            AND sp.timestamp = latest.latest_timestamp
-    ";
+    // Updated query to use the latest_spot_prices table
+    $query = "SELECT COUNT(*) FROM latest_spot_prices";
 
     if (!empty($filterConditions)) {
         $query .= " WHERE " . implode(' AND ', $filterConditions);
     }
-
-    $query .= ") AS filtered_spot_prices";
 
     $stmt = $pdo->prepare($query);
 
@@ -166,23 +144,81 @@ function getTotalSpotPricesCount($pdo, $params)
     return $stmt->fetchColumn();
 }
 
-function getSteals($pdo)
+
+
+function getStealsMetaData($pdo)
 {
-    $subQuery = "
-        SELECT instance_type, AVG(spot_price) as avg_price
-        FROM spot_prices
-        GROUP BY instance_type
+    $query = "
+        SELECT 
+            DISTINCT region 
+        FROM steal_spot_pricing
+        ORDER BY region ASC;
     ";
+    $stmt = $pdo->prepare($query);
+    $stmt->execute();
+    $regions = $stmt->fetchAll(PDO::FETCH_COLUMN);
 
     $query = "
-        SELECT s.region, s.instance_type, s.spot_price, s.timestamp
-        FROM spot_prices s
-        JOIN ($subQuery) avg ON s.instance_type = avg.instance_type
-        WHERE s.spot_price < avg.avg_price * 0.75
-        ORDER BY s.spot_price ASC
-        LIMIT 100
+        SELECT 
+            DISTINCT product_description 
+        FROM steal_spot_pricing
+        ORDER BY product_description ASC;
+    ";
+    $stmt = $pdo->prepare($query);
+    $stmt->execute();
+    $productDescriptions = $stmt->fetchAll(PDO::FETCH_COLUMN);
+
+    $query = "
+        SELECT 
+            DISTINCT steal_type 
+        FROM steal_spot_pricing
+        ORDER BY steal_type ASC;
+    ";
+    $stmt = $pdo->prepare($query);
+    $stmt->execute();
+    $stealTypes = $stmt->fetchAll(PDO::FETCH_COLUMN);
+
+    return [
+        'regions' => $regions,
+        'product_descriptions' => $productDescriptions,
+        'steal_types' => $stealTypes
+    ];
+}
+function getSteals($pdo, $filters)
+{
+    $query = "
+        SELECT 
+            region,
+            instance_type,
+            product_description,
+            spot_price,
+            timestamp,
+            steal_type
+        FROM steal_spot_pricing
+        WHERE 1=1
     ";
 
-    $stmt = $pdo->query($query);
+    $params = [];
+
+    if (!empty($filters['region'])) {
+        $query .= " AND region = :region";
+        $params[':region'] = $filters['region'];
+    }
+
+    if (!empty($filters['product_description'])) {
+        $query .= " AND product_description = :product_description";
+        $params[':product_description'] = $filters['product_description'];
+    }
+
+    if (!empty($filters['steal_type'])) {
+        $query .= " AND steal_type = :steal_type";
+        $params[':steal_type'] = $filters['steal_type'];
+    }
+
+    $query .= " ORDER BY spot_price ASC";
+
+    $stmt = $pdo->prepare($query);
+    $stmt->execute($params);
+
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }

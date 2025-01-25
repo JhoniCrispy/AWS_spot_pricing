@@ -1,12 +1,12 @@
 <?php
 try {
     require __DIR__ . '/../../vendor/autoload.php';
-    require __DIR__ . '/../database.php'; 
-    
+    require __DIR__ . '/../database.php';
+
     $config = require __DIR__ . '/../config.php';
 
     $pdo = getPDOConnection($config['db']);
-    
+
     $requestUri = $_SERVER['REQUEST_URI'];
     $method = $_SERVER['REQUEST_METHOD'];
 
@@ -31,8 +31,8 @@ try {
     }
 
     if ($method === 'GET' && preg_match('/\/api\/spot-prices/', $requestUri)) {
-        $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
-        $limit = isset($_GET['limit']) ? (int)$_GET['limit'] : 100;
+        $page = isset($_GET['page']) ? (int) $_GET['page'] : 1;
+        $limit = isset($_GET['limit']) ? (int) $_GET['limit'] : 100;
         $offset = ($page - 1) * $limit;
 
         $sortColumn = isset($_GET['sortBy']) ? $_GET['sortBy'] : 'timestamp';
@@ -72,10 +72,33 @@ try {
             exit;
         }
     }
+    if ($method === 'GET' && preg_match('/\/api\/steals\/meta/', $requestUri)) {
+        try {
+            $metaData = getStealsMetaData($pdo);
+            echo json_encode($metaData);
+            exit;
+        } catch (PDOException $e) {
+            http_response_code(500);
+            echo json_encode(['error' => 'Database error: ' . $e->getMessage()]);
+            exit;
+        }
+    }
 
     if ($method === 'GET' && preg_match('/\/api\/steals/', $requestUri)) {
         try {
-            $steals = getSteals($pdo);
+            // Extract optional filters from query parameters
+            $filters = [];
+            if (isset($_GET['region'])) {
+                $filters['region'] = $_GET['region'];
+            }
+            if (isset($_GET['product_description'])) {
+                $filters['product_description'] = $_GET['product_description'];
+            }
+            if (isset($_GET['steal_type'])) {
+                $filters['steal_type'] = $_GET['steal_type'];
+            }
+
+            $steals = getSteals($pdo, $filters);
             echo json_encode($steals);
             exit;
         } catch (PDOException $e) {
